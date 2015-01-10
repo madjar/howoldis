@@ -1,1 +1,1 @@
-web: cabal run -- -p $PORT
+web: ./dist/build/howoldis/howoldis -p $PORT
