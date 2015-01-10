@@ -3,7 +3,7 @@
 
 name:                howoldis
 version:             0.1.0.0
--- synopsis:            
+synopsis:            Little web app displaying the age of the last NixOS channels 
 -- description:         
 license:             BSD3
 license-file:        LICENSE
