@@ -9,19 +9,23 @@ import Control.Monad.Trans (liftIO)
 import Data.List (find)
 import Data.Monoid (mconcat)
 import Data.Text.Lazy (pack)
+import System.Environment (getEnvironment)
 import Text.Hamlet (shamlet)
 import Text.Blaze.Html.Renderer.Text (renderHtml)
 
 import Channels (Channel (..), channels, age, jobset)
 
-main = scotty 3000 $ do
-  get "/:channel" $ do
-    channelName <- param "channel"
-    allChannels <- liftIO $ channels
-    let channel = findChannel channelName allChannels
-    channelAge <- liftIO $ age channel
---     html $ renderHtml $ mainPage (name channel) channelAge (map name allChannels)
-    html $ renderHtml [shamlet|
+main = do
+  env <- getEnvironment
+  let port = maybe 3000 read $ lookup "PORT" env
+  scotty port $ do
+    get "/:channel" $ do
+      channelName <- param "channel"
+      allChannels <- liftIO $ channels
+      let channel = findChannel channelName allChannels
+      channelAge <- liftIO $ age channel
+  --     html $ renderHtml $ mainPage (name channel) channelAge (map name allChannels)
+      html $ renderHtml [shamlet|
 $doctype 5
 <head>
   <title> "How old are NixOS channels?"
