@@ -1,4 +1,4 @@
-module Channels (Channel (..), channels, age, jobset) where
+module Channels (DiffChannel (..), channels, age, jobset) where
 
 import Control.Monad (liftM)
 import Data.List (isPrefixOf)
@@ -14,6 +14,9 @@ data Channel = Channel { name :: String
                        , time :: UTCTime
                        } deriving (Show)
 
+data DiffChannel = DiffChannel { dname :: String
+                               , dtime :: String
+                               } deriving (Show)
 
 openURL :: String -> IO String
 openURL url = getResponseBody =<< simpleHTTP (getRequest url)
@@ -27,16 +30,21 @@ parseTime = readTime defaultTimeLocale format . strip'
         strip' = unpack . strip . pack
 
 -- |The list of the current NixOS channels
-channels :: IO [Channel]
-channels = liftM findGoodChannels channelsPage
-  where findGoodChannels = filter isRealdDir . findChannels . parseTags
-        isRealdDir channel = not $ "Parent" `isPrefixOf` name channel
-        findChannels = map makeChannel . filter isNotHeader . sections (~== "<tr>")
-        isNotHeader = (~/= "<th>") . head . drop 1
-        makeChannel x = Channel name time
-          where name = init . takeTextOf "<a>" $ x
-                time = parseTime . takeTextOf "<td align=right>" $ x
-                takeTextOf t = innerText . take 2 . dropWhile (~/= t)
+channels :: IO [DiffChannel]
+channels = do
+  chans <- liftM findGoodChannels channelsPage
+  mapM makeDiffChannel chans
+    where findGoodChannels = filter isRealdDir . findChannels . parseTags
+          isRealdDir channel = not $ "Parent" `isPrefixOf` name channel
+          findChannels = map makeChannel . filter isNotHeader . sections (~== "<tr>")
+          isNotHeader = (~/= "<th>") . head . drop 1
+          makeDiffChannel c = do
+            diff <- age c 
+            return $ DiffChannel (name c) diff
+          makeChannel x = Channel name time
+            where name = init . takeTextOf "<a>" $ x
+                  time = parseTime . takeTextOf "<td align=right>" $ x
+                  takeTextOf t = innerText . take 2 . dropWhile (~/= t)
 
 age :: Channel -> IO String
 age channel = do current <- getCurrentTime
@@ -55,8 +63,8 @@ humanTimeDiff d
         doShow x unit = (show $ truncate x) ++ " " ++ unit
 
 
-jobset :: Channel -> String
-jobset channel = j (name channel)
+jobset :: DiffChannel -> String
+jobset channel = j (dname channel)
   where j "nixos-unstable" = "nixos/trunk-combined"
         j "nixos-unstable-small" = "nixos/unstable-small"
         j c | "nixos-" `isPrefixOf` c = "nixos/release-" ++ (drop 6 c)
