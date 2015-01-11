@@ -3,9 +3,11 @@ module Channels (Channel (..), channels, age, jobset) where
 import Control.Monad (liftM)
 import Data.List (isPrefixOf)
 import Network.HTTP (simpleHTTP, getRequest, getResponseBody)
+import Data.Text (pack, unpack, strip)
 import Text.HTML.TagSoup (sections, (~==), (~/=), innerText, parseTags)
 import Data.Time.Clock (UTCTime, NominalDiffTime, getCurrentTime, diffUTCTime)
-import Data.Time.Format (parseTimeOrError, defaultTimeLocale)
+import System.Locale (defaultTimeLocale)
+import Data.Time.Format (readTime)
 
 
 data Channel = Channel { name :: String
@@ -20,8 +22,9 @@ channelsPage :: IO String
 channelsPage = openURL "http://nixos.org/channels/"
 
 parseTime :: String -> UTCTime
-parseTime = parseTimeOrError True defaultTimeLocale format
+parseTime = readTime defaultTimeLocale format . strip'
   where format = "%d-%b-%Y %R"
+        strip' = unpack . strip . pack
 
 -- |The list of the current NixOS channels
 channels :: IO [Channel]
