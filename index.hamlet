@@ -6,23 +6,26 @@ $doctype 5
   <div class=container>
     <div class=page-header>
       <h1>How outdated are NixOS channels?
-      <table class="table table-striped">
-        <thead>
+    <h2 class=text-center>#{dname mainChannel} is <strong>#{dtime mainChannel}</strong> old
+
+    <h3>What about the other NixOS channels?
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Channel
+          <th>Updated
+          <th>Tests
+      <tbody>
+        $forall chan <- allChannels
           <tr>
-            <th>Channel
-            <th>Updated
-            <th>Tests
-        <tbody>
-          $forall chan <- allChannels
-            <tr>
-              <td>
-                <a href="/#{dname chan}"> #{dname chan}
-              <td>
-                #{dtime chan} ago
-              <td>
-                $maybe j <- jobset chan
-                  <a href="http://hydra.nixos.org/job/#{j}/tested#tabs-constituents"> Hydra
-                $nothing
-                  No tests
+            <td>
+              <a href="/#{dname chan}"> #{dname chan}
+            <td>
+              #{dtime chan} ago
+            <td>
+              $maybe j <- jobset chan
+                <a href="http://hydra.nixos.org/job/#{j}/tested#tabs-constituents"> Hydra
+              $nothing
+                No tests
   <div class=container>
     <p class=text-muted>Made by <a href="https://twitter.com/georgesdubus">Georges Dubus</a>, code is on <a href="https://github.com/madjar/howoldis">github</a>
