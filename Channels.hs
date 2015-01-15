@@ -39,7 +39,7 @@ channels = do
           findChannels = map makeChannel . filter isNotHeader . sections (~== "<tr>")
           isNotHeader = (~/= "<th>") . head . drop 1
           makeDiffChannel c = do
-            diff <- age c 
+            diff <- age c
             return $ DiffChannel (name c) diff
           makeChannel x = Channel name time
             where name = init . takeTextOf "<a>" $ x
@@ -63,9 +63,9 @@ humanTimeDiff d
         doShow x unit = (show $ truncate x) ++ " " ++ unit
 
 
-jobset :: DiffChannel -> String
+jobset :: DiffChannel -> Maybe String
 jobset channel = j (dname channel)
-  where j "nixos-unstable" = "nixos/trunk-combined"
-        j "nixos-unstable-small" = "nixos/unstable-small"
-        j c | "nixos-" `isPrefixOf` c = "nixos/release-" ++ (drop 6 c)
-        j _ = ""
+  where j "nixos-unstable" = Just "nixos/trunk-combined"
+        j "nixos-unstable-small" = Just "nixos/unstable-small"
+        j c | "nixos-" `isPrefixOf` c = Just $ "nixos/release-" ++ (drop 6 c)
+        j _ = Nothing

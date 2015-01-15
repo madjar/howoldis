@@ -20,6 +20,9 @@ $doctype 5
               <td>
                 #{dtime chan} ago
               <td>
-                <a href="http://hydra.nixos.org/job/#{jobset chan}/tested#tabs-constituents"> Hydra
+                $maybe j <- jobset chan
+                  <a href="http://hydra.nixos.org/job/#{j}/tested#tabs-constituents"> Hydra
+                $nothing
+                  No tests
   <div class=container>
     <p class=text-muted>Made by <a href="https://twitter.com/georgesdubus">Georges Dubus</a>, code is on <a href="https://github.com/madjar/howoldis">github</a>
