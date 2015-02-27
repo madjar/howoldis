@@ -24,7 +24,7 @@ $doctype 5
               #{dtime chan} ago
             <td>
               $maybe j <- jobset chan
-                <a href="http://hydra.nixos.org/job/#{j}/tested#tabs-constituents"> Hydra
+                <a href="http://hydra.nixos.org/job/#{j}#tabs-constituents"> Hydra
               $nothing
                 No tests
   <div class=container>

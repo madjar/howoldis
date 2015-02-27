@@ -65,7 +65,8 @@ humanTimeDiff d
 
 jobset :: DiffChannel -> Maybe String
 jobset channel = j (dname channel)
-  where j "nixos-unstable" = Just "nixos/trunk-combined"
-        j "nixos-unstable-small" = Just "nixos/unstable-small"
-        j c | "nixos-" `isPrefixOf` c = Just $ "nixos/release-" ++ (drop 6 c)
+  where j "nixos-unstable" = Just "nixos/trunk-combined/tested"
+        j "nixos-unstable-small" = Just "nixos/unstable-small/tested"
+        j "nixpkgs-unstable" = Just "nixpkgs/trunk/unstable"
+        j c | "nixos-" `isPrefixOf` c = Just $ "nixos/release-" ++ (drop 6 c) ++ "/tested"
         j _ = Nothing
