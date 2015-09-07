@@ -6,12 +6,12 @@ import Network.HTTP (simpleHTTP, getRequest, getResponseBody)
 import Data.Text (pack, unpack, strip)
 import Text.HTML.TagSoup (sections, (~==), (~/=), innerText, parseTags)
 import Data.Time.Clock (UTCTime, NominalDiffTime, getCurrentTime, diffUTCTime)
-import Data.Time.Format (readTime, defaultTimeLocale)
+import Data.Time.Format (parseTimeM, defaultTimeLocale)
 import Data.Time.LocalTime (localTimeToUTC, hoursToTimeZone)
 
 
 data Channel = Channel { name :: String
-                       , time :: UTCTime
+                       , time :: Either String UTCTime
                        } deriving (Show)
 
 data DiffChannel = DiffChannel { dname :: String
@@ -24,8 +24,8 @@ openURL url = getResponseBody =<< simpleHTTP (getRequest url)
 channelsPage :: IO String
 channelsPage = openURL "http://nixos.org/channels/"
 
-parseTime :: String -> UTCTime
-parseTime = localTimeToUTC tz . readTime defaultTimeLocale format . strip'
+parseTime :: String -> Either String UTCTime
+parseTime = liftM (localTimeToUTC tz) . parseTimeM True defaultTimeLocale format . strip'
   where format = "%d-%b-%Y %R"
         tz = hoursToTimeZone 1 -- CET
         strip' = unpack . strip . pack
@@ -49,8 +49,8 @@ channels = do
 
 age :: Channel -> IO String
 age channel = do current <- getCurrentTime
-                 let diff = diffUTCTime current (time channel)
-                 return $ humanTimeDiff diff
+                 let diff = diffUTCTime current <$> time channel
+                 return (either id humanTimeDiff diff)
 
 humanTimeDiff :: NominalDiffTime -> String
 humanTimeDiff d
