@@ -1,1 +1,1 @@
-web: cabal run
+web: .local/bin/howoldis
