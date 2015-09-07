@@ -6,8 +6,7 @@ import Network.HTTP (simpleHTTP, getRequest, getResponseBody)
 import Data.Text (pack, unpack, strip)
 import Text.HTML.TagSoup (sections, (~==), (~/=), innerText, parseTags)
 import Data.Time.Clock (UTCTime, NominalDiffTime, getCurrentTime, diffUTCTime)
-import System.Locale (defaultTimeLocale)
-import Data.Time.Format (readTime)
+import Data.Time.Format (readTime, defaultTimeLocale)
 import Data.Time.LocalTime (localTimeToUTC, hoursToTimeZone)
 
 
