@@ -26,7 +26,7 @@ channelsPage = openURL "http://nixos.org/channels/"
 
 parseTime :: String -> Either String UTCTime
 parseTime = liftM (localTimeToUTC tz) . parseTimeM True defaultTimeLocale format . strip'
-  where format = "%d-%b-%Y %R"
+  where format = "%F %R"
         tz = hoursToTimeZone 1 -- CET
         strip' = unpack . strip . pack
 
