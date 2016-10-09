@@ -19,7 +19,8 @@ executable howoldis
   main-is:             Main.hs
   -- other-modules:       
   -- other-extensions:    
-  build-depends:       HTTP >= 4000.2.18
+  build-depends:       wreq
+                     , lens
                      , base >=4.8 && <5.0
                      , blaze-html >= 0.7.0
                      , mtl >= 2.1.3

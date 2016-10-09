@@ -1,13 +1,14 @@
 module Channels (DiffChannel (..), channels, age, jobset) where
 
 import Control.Monad (liftM)
-import Data.List (isPrefixOf)
-import Network.HTTP (simpleHTTP, getRequest, getResponseBody)
-import Data.Text (pack, unpack, strip)
+import Control.Lens
+import Network.Wreq
 import Text.HTML.TagSoup (sections, (~==), (~/=), innerText, parseTags)
+import Data.List (isPrefixOf)
 import Data.Time.Clock (UTCTime, NominalDiffTime, getCurrentTime, diffUTCTime)
 import Data.Time.Format (parseTimeM, defaultTimeLocale)
 import Data.Time.LocalTime (localTimeToUTC, hoursToTimeZone)
+import Data.Text (pack, unpack, strip)
 
 
 data Channel = Channel { name :: String
@@ -15,14 +16,11 @@ data Channel = Channel { name :: String
                        } deriving (Show)
 
 data DiffChannel = DiffChannel { dname :: String
-                               , dtime :: String
+                               , dtime :: Age
                                } deriving (Show)
 
-openURL :: String -> IO String
-openURL url = getResponseBody =<< simpleHTTP (getRequest url)
+type Age = String
 
-channelsPage :: IO String
-channelsPage = openURL "http://nixos.org/channels/"
 
 parseTime :: String -> Either String UTCTime
 parseTime = liftM (localTimeToUTC tz) . parseTimeM True defaultTimeLocale format . strip'
@@ -30,29 +28,35 @@ parseTime = liftM (localTimeToUTC tz) . parseTimeM True defaultTimeLocale format
         tz = hoursToTimeZone 1 -- CET
         strip' = unpack . strip . pack
 
+findGoodChannels :: String -> [Channel]
+findGoodChannels = filter isRealdDir . findChannels . parseTags
+  where
+    isRealdDir channel = not $ "Parent" `isPrefixOf` name channel
+    findChannels = map makeChannel . filter isNotHeader . sections (~== "<tr>")
+    isNotHeader = (~/= "<th>") . head . drop 1
+    makeChannel x = Channel name time
+      where name = init . takeTextOf "<a>" $ x
+            time = parseTime . takeTextOf "<td align=\\\"right\\\">" $ x
+            takeTextOf t = innerText . take 2 . dropWhile (~/= t)
+
+makeDiffChannel :: Channel -> IO DiffChannel
+makeDiffChannel c = do
+  diff <- age c
+  return $ DiffChannel (name c) diff
+
 -- |The list of the current NixOS channels
 channels :: IO [DiffChannel]
 channels = do
-  chans <- liftM findGoodChannels channelsPage
-  mapM makeDiffChannel chans
-    where findGoodChannels = filter isRealdDir . findChannels . parseTags
-          isRealdDir channel = not $ "Parent" `isPrefixOf` name channel
-          findChannels = map makeChannel . filter isNotHeader . sections (~== "<tr>")
-          isNotHeader = (~/= "<th>") . head . drop 1
-          makeDiffChannel c = do
-            diff <- age c
-            return $ DiffChannel (name c) diff
-          makeChannel x = Channel name time
-            where name = init . takeTextOf "<a>" $ x
-                  time = parseTime . takeTextOf "<td align=right>" $ x
-                  takeTextOf t = innerText . take 2 . dropWhile (~/= t)
+  r <- get "http://nixos.org/channels/"
+  mapM makeDiffChannel $ findGoodChannels $ show $ r ^. responseBody
 
-age :: Channel -> IO String
-age channel = do current <- getCurrentTime
-                 let diff = diffUTCTime current <$> time channel
-                 return (either id humanTimeDiff diff)
+age :: Channel -> IO Age
+age channel = do
+  current <- getCurrentTime
+  let diff = diffUTCTime current <$> time channel
+  return (either id humanTimeDiff diff)
 
-humanTimeDiff :: NominalDiffTime -> String
+humanTimeDiff :: NominalDiffTime -> Age
 humanTimeDiff d
   | days > 1 = doShow days "days"
   | hours > 1 = doShow hours "hours"
@@ -65,9 +69,11 @@ humanTimeDiff d
 
 
 jobset :: DiffChannel -> Maybe String
-jobset channel = j (dname channel)
-  where j "nixos-unstable" = Just "nixos/trunk-combined/tested"
-        j "nixos-unstable-small" = Just "nixos/unstable-small/tested"
-        j "nixpkgs-unstable" = Just "nixpkgs/trunk/unstable"
-        j c | "nixos-" `isPrefixOf` c = Just $ "nixos/release-" ++ (drop 6 c) ++ "/tested"
-        j _ = Nothing
+jobset channel
+ | c == "nixos-unstable"       = Just "nixos/trunk-combined/tested"
+ | c == "nixos-unstable-small" = Just "nixos/unstable-small/tested"
+ | c == "nixpkgs-unstable"     = Just "nixpkgs/trunk/unstable"
+ | "nixos-" `isPrefixOf` c     = Just $ "nixos/release-" ++ (drop 6 c) ++ "/tested"
+ | otherwise                   = Nothing
+ where
+   c = dname channel
