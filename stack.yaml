@@ -2,4 +2,7 @@ flags: {}
 packages:
 - '.'
 extra-deps: []
+nix:
+  enable: false
+  packages: [zlib.dev, zlib.out, pkgconfig, haskell.compiler.ghc7103]
 resolver: lts-6.7
