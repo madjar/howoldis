@@ -35,7 +35,7 @@ findGoodChannels = filter isRealdDir . findChannels . parseTags
     findChannels = map makeChannel . filter isNotHeader . sections (~== "<tr>")
     isNotHeader = (~/= "<th>") . head . drop 1
     makeChannel x = Channel name time
-      where name = init . takeTextOf "<a>" $ x
+      where name = takeTextOf "<a>" $ x
             time = parseTime . takeTextOf "<td align=\\\"right\\\">" $ x
             takeTextOf t = innerText . take 2 . dropWhile (~/= t)
 
