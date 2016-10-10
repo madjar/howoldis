@@ -13,7 +13,7 @@ import System.Environment (getEnvironment)
 import Text.Hamlet (shamletFile)
 import Text.Blaze.Html.Renderer.Text (renderHtml)
 
-import Channels (DiffChannel (..), channels, age, jobset)
+import Channels (DiffChannel (..), channels, jobset)
 
 
 main = do
