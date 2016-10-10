@@ -1,4 +1,4 @@
-module Channels (DiffChannel (..), channels, age, jobset) where
+module Channels (DiffChannel (..), channels, jobset) where
 
 import Control.Monad (liftM)
 import Control.Lens
@@ -15,11 +15,12 @@ data Channel = Channel { name :: String
                        , time :: Either String UTCTime
                        } deriving (Show)
 
-data DiffChannel = DiffChannel { dname :: String
-                               , dtime :: Age
+data DiffChannel = DiffChannel { dname  :: String
+                               , dlabel :: Color
+                               , dtime  :: String
                                } deriving (Show)
 
-type Age = String
+type Color = String
 
 
 parseTime :: String -> Either String UTCTime
@@ -40,9 +41,10 @@ findGoodChannels = filter isRealdDir . findChannels . parseTags
             takeTextOf t = innerText . take 2 . dropWhile (~/= t)
 
 makeDiffChannel :: Channel -> IO DiffChannel
-makeDiffChannel c = do
-  diff <- age c
-  return $ DiffChannel (name c) diff
+makeDiffChannel channel = do
+  current <- getCurrentTime
+  let diff = diffUTCTime current <$> time channel
+  return $ DiffChannel (name channel) (diffToLabel diff) (either id humanTimeDiff diff)
 
 -- |The list of the current NixOS channels
 channels :: IO [DiffChannel]
@@ -50,13 +52,8 @@ channels = do
   r <- get "http://nixos.org/channels/"
   mapM makeDiffChannel $ findGoodChannels $ show $ r ^. responseBody
 
-age :: Channel -> IO Age
-age channel = do
-  current <- getCurrentTime
-  let diff = diffUTCTime current <$> time channel
-  return (either id humanTimeDiff diff)
 
-humanTimeDiff :: NominalDiffTime -> Age
+humanTimeDiff :: NominalDiffTime -> String
 humanTimeDiff d
   | days > 1 = doShow days "days"
   | hours > 1 = doShow hours "hours"
@@ -77,3 +74,12 @@ jobset channel
  | otherwise                   = Nothing
  where
    c = dname channel
+
+-- | Takes time since last update to the channel and colors it based on it's age
+diffToLabel :: Either String NominalDiffTime -> Color
+diffToLabel (Left _) = ""
+diffToLabel (Right time)
+  | days < 3 = "success"
+  | days < 10 = "warning"
+  | otherwise = "danger"
+    where days = time / (60 * 60 * 24)

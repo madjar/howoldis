@@ -21,7 +21,7 @@ $doctype 5
             <td>
               <a href="/#{dname chan}"> #{dname chan}
             <td>
-              #{dtime chan} ago
+              <span class="label label-#{dlabel chan}">#{dtime chan} ago</span>
             <td>
               $maybe j <- jobset chan
                 <a href="http://hydra.nixos.org/job/#{j}#tabs-constituents"> Hydra
