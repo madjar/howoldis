@@ -8,6 +8,8 @@ import Data.List (isPrefixOf)
 import Data.Time.Clock (UTCTime, NominalDiffTime, getCurrentTime, diffUTCTime)
 import Data.Time.Format (parseTimeM, defaultTimeLocale)
 import Data.Time.LocalTime (localTimeToUTC, hoursToTimeZone)
+import Data.Time.Zones
+import Data.Time.Zones.All
 import Data.Text (pack, unpack, strip)
 
 
@@ -24,10 +26,8 @@ type Color = String
 
 
 parseTime :: String -> Either String UTCTime
-parseTime = liftM (localTimeToUTC tz) . parseTimeM True defaultTimeLocale format . strip'
-  where format = "%F %R"
-        tz = hoursToTimeZone 1 -- CET
-        strip' = unpack . strip . pack
+parseTime = liftM (localTimeToUTCTZ tz) . parseTimeM True defaultTimeLocale "%F %R"
+  where tz = tzByLabel Europe__Rome -- CET/CEST
 
 findGoodChannels :: String -> [Channel]
 findGoodChannels = filter isRealdDir . findChannels . parseTags
