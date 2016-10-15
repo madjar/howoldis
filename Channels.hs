@@ -26,7 +26,7 @@ type Color = String
 
 
 parseTime :: String -> Either String UTCTime
-parseTime = liftM (localTimeToUTCTZ tz) . parseTimeM True defaultTimeLocale "%F %R"
+parseTime = fmap (localTimeToUTCTZ tz) . parseTimeM True defaultTimeLocale "%F %R"
   where tz = tzByLabel Europe__Rome -- CET/CEST
 
 findGoodChannels :: String -> [Channel]
