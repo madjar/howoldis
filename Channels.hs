@@ -12,7 +12,7 @@ import Data.Time.LocalTime (localTimeToUTC, hoursToTimeZone)
 import Data.Time.Zones
 import Data.Time.Zones.All
 import qualified Data.Text as DT
-import Data.Text (pack, unpack, Text)
+import Data.Text (pack, unpack, replace, Text)
 
 
 data Channel = Channel { name :: Text
@@ -22,6 +22,7 @@ data Channel = Channel { name :: Text
 data DiffChannel = DiffChannel { dname  :: Text
                                , dlabel :: Color
                                , dtime  :: Text
+                               , djobset :: Maybe Text
                                } deriving (Show)
 
 type Color = Text
@@ -36,8 +37,10 @@ findGoodChannels html = map makeChannel rows
   where
     rows = drop 2 $ concatMap (HQ.select "tr:has(a)") $ HQ.parseHtml $ html
     makeChannel tag = Channel name time
-      where name = maybe "" id $ HQ.attr "href" $ head $ HQ.select "a" tag
+      where name = replaceEscapedQuotes $ maybe "" id $ HQ.attr "href" $ head $ HQ.select "a" tag
             time = parseTime $ unpack $ innerText $ head $ HQ.select "*:nth-child(3)" tag
+            -- TODO: Why do these quotes leak into tag content?
+            replaceEscapedQuotes = replace "\\\"" ""
 
 -- TODO: Remove once merged https://github.com/crufter/haquery/pull/6
 innerText :: HQ.Tag -> Text
@@ -49,7 +52,7 @@ makeDiffChannel :: Channel -> IO DiffChannel
 makeDiffChannel channel = do
   current <- getCurrentTime
   let diff = diffUTCTime current <$> time channel
-  return $ DiffChannel (name channel) (diffToLabel diff) (either id humanTimeDiff diff)
+  return $ DiffChannel (name channel) (diffToLabel diff) (either id humanTimeDiff diff) (jobset $ name channel)
 
 -- |The list of the current NixOS channels
 channels :: IO [DiffChannel]
@@ -70,15 +73,13 @@ humanTimeDiff d
         doShow x unit = (pack $ show $ truncate x) <> " " <> unit
 
 
-jobset :: DiffChannel -> Maybe Text
-jobset channel
+jobset :: Text -> Maybe Text
+jobset c
  | c == "nixos-unstable"       = Just "nixos/trunk-combined/tested"
  | c == "nixos-unstable-small" = Just "nixos/unstable-small/tested"
  | c == "nixpkgs-unstable"     = Just "nixpkgs/trunk/unstable"
  | "nixos-" `DT.isPrefixOf` c  = Just $ "nixos/release-" <> (DT.drop 6 c) <> "/tested"
  | otherwise                   = Nothing
- where
-   c = dname channel
 
 -- | Takes time since last update to the channel and colors it based on it's age
 diffToLabel :: Either Text NominalDiffTime -> Color

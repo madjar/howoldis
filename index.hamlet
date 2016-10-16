@@ -23,8 +23,8 @@ $doctype 5
             <td>
               <span class="label label-#{dlabel chan}">#{dtime chan} ago</span>
             <td>
-              $maybe j <- jobset chan
-                <a href="http://hydra.nixos.org/job/#{j}#tabs-constituents"> Hydra
+              $maybe j <- djobset chan
+                <a href="http://hydra.nixos.org/job/#{j}#tabs-constituents"> #{j}
               $nothing
                 No tests
   <div class=container>
