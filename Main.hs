@@ -3,13 +3,10 @@
 import Web.Scotty
 
 import Control.Applicative ((<|>))
-import Data.Maybe (fromJust)
-import Control.Monad (liftM)
 import Control.Monad.Trans (liftIO)
+import Data.Maybe (fromJust)
 import Data.List (find)
-import Data.Monoid (mconcat)
 import Data.Text (Text)
-import Data.Text.Lazy (pack)
 import System.Environment (getEnvironment)
 import Text.Hamlet (shamletFile)
 import Text.Blaze.Html.Renderer.Text (renderHtml)
@@ -29,8 +26,8 @@ main = do
 
 
 findChannel :: Text -> [DiffChannel] -> DiffChannel
-findChannel channelName chans = fromJust $
-                                lookup channelName
-                                <|> lookup "nixos-unstable"
-                                <|> Just (head chans)
+findChannel channelName chans =
+  fromJust $ lookup channelName
+    <|> lookup "nixos-unstable"
+    <|> Just (head chans)
   where lookup n = find (\c -> dname c == n) chans
