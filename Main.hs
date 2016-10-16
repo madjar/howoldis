@@ -8,6 +8,7 @@ import Control.Monad (liftM)
 import Control.Monad.Trans (liftIO)
 import Data.List (find)
 import Data.Monoid (mconcat)
+import Data.Text (Text)
 import Data.Text.Lazy (pack)
 import System.Environment (getEnvironment)
 import Text.Hamlet (shamletFile)
@@ -27,7 +28,7 @@ main = do
       html $ renderHtml $(shamletFile "index.hamlet")
 
 
-findChannel :: String -> [DiffChannel] -> DiffChannel
+findChannel :: Text -> [DiffChannel] -> DiffChannel
 findChannel channelName chans = fromJust $
                                 lookup channelName
                                 <|> lookup "nixos-unstable"
