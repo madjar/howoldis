@@ -24,9 +24,9 @@ executable howoldis
                      , base >=4.8 && <5.0
                      , blaze-html >= 0.7.0
                      , mtl >= 2.1.3
+                     , haquery > 0.1.1.2
                      , scotty >= 0.9
                      , shakespeare >= 2.0.0
-                     , tagsoup >= 0.13.3
                      , text >= 1.2.0
                      , time >= 1.5
                      , tz

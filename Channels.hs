@@ -1,16 +1,16 @@
 module Channels (DiffChannel (..), channels, jobset) where
 
-import Control.Monad (liftM)
 import Control.Lens
+import qualified Haquery as HQ
 import Network.Wreq
-import Text.HTML.TagSoup (sections, (~==), (~/=), innerText, parseTags)
 import Data.List (isPrefixOf)
 import Data.Time.Clock (UTCTime, NominalDiffTime, getCurrentTime, diffUTCTime)
 import Data.Time.Format (parseTimeM, defaultTimeLocale)
 import Data.Time.LocalTime (localTimeToUTC, hoursToTimeZone)
 import Data.Time.Zones
 import Data.Time.Zones.All
-import Data.Text (pack, unpack, strip)
+import qualified Data.Text
+import Data.Text (pack, unpack, Text)
 
 
 data Channel = Channel { name :: String
@@ -30,15 +30,18 @@ parseTime = fmap (localTimeToUTCTZ tz) . parseTimeM True defaultTimeLocale "%F %
   where tz = tzByLabel Europe__Rome -- CET/CEST
 
 findGoodChannels :: String -> [Channel]
-findGoodChannels = filter isRealdDir . findChannels . parseTags
+findGoodChannels html = map makeChannel rows
   where
-    isRealdDir channel = not $ "Parent" `isPrefixOf` name channel
-    findChannels = map makeChannel . filter isNotHeader . sections (~== "<tr>")
-    isNotHeader = (~/= "<th>") . head . drop 1
-    makeChannel x = Channel name time
-      where name = takeTextOf "<a>" $ x
-            time = parseTime . takeTextOf "<td align=\\\"right\\\">" $ x
-            takeTextOf t = innerText . take 2 . dropWhile (~/= t)
+    rows = drop 2 $ concatMap (HQ.select (pack "tr:has(a)")) $ HQ.parseHtml $ pack html
+    makeChannel tag = Channel name time
+      where name = maybe "" unpack $ HQ.attr (pack "href") $ head $ HQ.select (pack "a") tag
+            time = parseTime $ unpack $ innerText $ head $ HQ.select (pack "*:nth-child(3)") tag
+
+-- TODO: Remove once merged https://github.com/crufter/haquery/pull/6
+innerText :: HQ.Tag -> Text
+innerText (HQ.Doctype _ text) = text
+innerText (HQ.Text _ text) = text
+innerText (HQ.Tag _ _ _ children) = Data.Text.concat $ map innerText children
 
 makeDiffChannel :: Channel -> IO DiffChannel
 makeDiffChannel channel = do
