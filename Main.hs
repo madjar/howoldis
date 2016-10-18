@@ -18,16 +18,6 @@ main = do
   env <- getEnvironment
   let port = maybe 3000 read $ lookup "PORT" env
   scotty port $ do
-    get "/:channel" $ do
+    get "/" $ do
       allChannels <- liftIO $ channels
-      channelName <- param "channel"
-      let mainChannel = findChannel channelName allChannels
       html $ renderHtml $(shamletFile "index.hamlet")
-
-
-findChannel :: Text -> [DiffChannel] -> DiffChannel
-findChannel channelName chans =
-  fromJust $ lookup channelName
-    <|> lookup "nixos-unstable"
-    <|> Just (head chans)
-  where lookup n = find (\c -> dname c == n) chans

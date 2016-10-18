@@ -1,18 +1,25 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Channels (DiffChannel (..), channels, jobset) where
 
+import Control.Concurrent.ParallelIO.Global (parallelE, stopGlobalPool)
+import Control.Exception (try)
 import Control.Lens
+import Control.Monad (unless)
 import qualified Haquery as HQ
-import Network.Wreq
+import Data.Either (rights, lefts)
 import Data.Monoid ((<>))
-import Data.List (isPrefixOf)
+import Data.List (null)
+import Data.List.Split (splitOn)
 import Data.Time.Clock (UTCTime, NominalDiffTime, getCurrentTime, diffUTCTime)
 import Data.Time.Format (parseTimeM, defaultTimeLocale)
 import Data.Time.LocalTime (localTimeToUTC, hoursToTimeZone)
 import Data.Time.Zones
 import Data.Time.Zones.All
 import qualified Data.Text as DT
+import qualified Data.ByteString.Char8 as C8
 import Data.Text (pack, unpack, replace, Text)
+import qualified Network.Wreq as W
+import Network.HTTP.Client (HttpException(StatusCodeException))
 
 
 data Channel = Channel { name :: Text
@@ -21,7 +28,10 @@ data Channel = Channel { name :: Text
 
 data DiffChannel = DiffChannel { dname  :: Text
                                , dlabel :: Color
-                               , dtime  :: Text
+                               , dhumantime  :: Text
+                               , dtime :: Maybe NominalDiffTime
+                               , dcommit :: String
+                               , dlink :: String
                                , djobset :: Maybe Text
                                } deriving (Show)
 
@@ -48,17 +58,37 @@ innerText (HQ.Doctype _ text) = text
 innerText (HQ.Text _ text) = text
 innerText (HQ.Tag _ _ _ children) = DT.concat $ map innerText children
 
-makeDiffChannel :: Channel -> IO DiffChannel
-makeDiffChannel channel = do
-  current <- getCurrentTime
+makeDiffChannel :: UTCTime -> Channel -> IO DiffChannel
+makeDiffChannel current channel = do
+  e <- try $ W.head_ $ unpack $ "http://nixos.org/channels/" <> name channel
+  let link = case e of
+               -- We get 302 redirect with Location header, no need to go further
+               -- Propagate the rest of the errors
+               Left (StatusCodeException _ headers _) -> C8.unpack $ snd $ head $ filter ((== "Location") . fst) headers
+               Right response -> C8.unpack $ response ^. W.responseHeader "Location"
   let diff = diffUTCTime current <$> time channel
-  return $ DiffChannel (name channel) (diffToLabel diff) (either id humanTimeDiff diff) (jobset $ name channel)
+  return $ DiffChannel (name channel)
+                       (diffToLabel diff)
+                       (either id humanTimeDiff diff)
+                       (either (const Nothing) Just diff)
+                       (parseCommit link)
+                       link
+                       (jobset $ name channel)
+
+
+parseCommit :: String -> String
+parseCommit url = last $ splitOn "." url
 
 -- |The list of the current NixOS channels
 channels :: IO [DiffChannel]
 channels = do
-  r <- get "http://nixos.org/channels/"
-  mapM makeDiffChannel $ findGoodChannels $ pack $ show $ r ^. responseBody
+  r <- W.get "http://nixos.org/channels/"
+  current <- getCurrentTime
+  let html = pack $ show $ r ^. W.responseBody
+  responseOrExc <- parallelE $ fmap (makeDiffChannel current) $ findGoodChannels $ html
+  unless (null $ lefts responseOrExc) $ do
+    print $ lefts responseOrExc
+  return $ rights responseOrExc
 
 
 humanTimeDiff :: NominalDiffTime -> Text
