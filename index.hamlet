@@ -74,27 +74,29 @@ $doctype 5
               <strong>nixpkgs</strong> is quickly updated since none of the above needs to happen.
 
     <div class=page-header>
-      <h1>How up to date are NixOS channels?
-    <h2 class=text-center>#{dname mainChannel} is <strong>#{dtime mainChannel}</strong> old
+      <h3>How up to date are NixOS channels?
 
-    <h3>What about the other NixOS channels?
     <table class="table table-striped">
       <thead>
         <tr>
           <th>Channel
-          <th>Updated
-          <th>Tests
+          <th>Last updated
+          <th>Commit
+          <th>Hydra job for tests
       <tbody>
         $forall chan <- allChannels
           <tr>
             <td>
-              <a href="/#{dname chan}"> #{dname chan}
+              <a href="#{dlink chan}"> #{dname chan}
             <td>
-              <span class="label label-#{dlabel chan}">#{dtime chan} ago</span>
+              <span class="label label-#{dlabel chan}">#{dhumantime chan} ago</span>
+            <td>
+              <a href="https://github.com/NixOS/nixpkgs/commit/#{dcommit chan}"> #{dcommit chan}
             <td>
               $maybe j <- djobset chan
                 <a href="http://hydra.nixos.org/job/#{j}#tabs-constituents"> #{j}
               $nothing
                 No tests
+
   <div class=container>
     <p class=text-muted>Made by <a href="https://twitter.com/georgesdubus">Georges Dubus</a>, code is on <a href="https://github.com/madjar/howoldis">github</a>
