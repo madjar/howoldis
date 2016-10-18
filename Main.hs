@@ -11,7 +11,7 @@ import System.Environment (getEnvironment)
 import Text.Hamlet (shamletFile)
 import Text.Blaze.Html.Renderer.Text (renderHtml)
 
-import Channels (DiffChannel (..), channels, jobset)
+import Channels (Channel (..), channels, jobset)
 
 
 main = do
@@ -21,3 +21,6 @@ main = do
     get "/" $ do
       allChannels <- liftIO $ channels
       html $ renderHtml $(shamletFile "index.hamlet")
+    get "/api/channels" $ do
+      allChannels <- liftIO $ channels
+      json $ allChannels

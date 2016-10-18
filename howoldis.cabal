@@ -23,6 +23,7 @@ executable howoldis
                      , http-client
                      , bytestring
                      , split
+                     , aeson
                      , parallel-io
                      , blaze-html >= 0.7.0
                      , mtl >= 2.1.3

@@ -87,13 +87,13 @@ $doctype 5
         $forall chan <- allChannels
           <tr>
             <td>
-              <a href="#{dlink chan}"> #{dname chan}
+              <a href="#{link chan}"> #{name chan}
             <td>
-              <span class="label label-#{dlabel chan}">#{dhumantime chan} ago</span>
+              <span class="label label-#{label chan}">#{humantime chan} ago</span>
             <td>
-              <a href="https://github.com/NixOS/nixpkgs/commit/#{dcommit chan}"> #{dcommit chan}
+              <a href="https://github.com/NixOS/nixpkgs/commit/#{commit chan}"> #{commit chan}
             <td>
-              $maybe j <- djobset chan
+              $maybe j <- jobset chan
                 <a href="http://hydra.nixos.org/job/#{j}#tabs-constituents"> #{j}
               $nothing
                 No tests

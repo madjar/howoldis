@@ -1,11 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Channels (DiffChannel (..), channels, jobset) where
+{-# LANGUAGE DeriveGeneric #-}
+module Channels (Channel (..), channels) where
 
 import Control.Concurrent.ParallelIO.Global (parallelE, stopGlobalPool)
 import Control.Exception (try)
 import Control.Lens
 import Control.Monad (unless)
+import GHC.Generics
 import qualified Haquery as HQ
+import Data.Aeson (ToJSON)
 import Data.Either (rights, lefts)
 import Data.Monoid ((<>))
 import Data.List (null)
@@ -22,18 +25,19 @@ import qualified Network.Wreq as W
 import Network.HTTP.Client (HttpException(StatusCodeException))
 
 
-data Channel = Channel { name :: Text
-                       , time :: Either Text UTCTime
-                       } deriving (Show)
+data RawChannel = RawChannel { rname :: Text
+                             , rtime :: Either Text UTCTime
+                             } deriving (Show)
 
-data DiffChannel = DiffChannel { dname  :: Text
-                               , dlabel :: Color
-                               , dhumantime  :: Text
-                               , dtime :: Maybe NominalDiffTime
-                               , dcommit :: String
-                               , dlink :: String
-                               , djobset :: Maybe Text
-                               } deriving (Show)
+data Channel = Channel { name  :: Text
+                       , label :: Color
+                       , humantime  :: Text
+                       , time :: Maybe NominalDiffTime
+                       , commit :: String
+                       , link :: String
+                       , jobset :: Maybe Text
+                       } deriving (Show, Generic)
+instance ToJSON Channel
 
 type Color = Text
 
@@ -42,11 +46,11 @@ parseTime :: String -> Either Text UTCTime
 parseTime = fmap (localTimeToUTCTZ tz) . parseTimeM True defaultTimeLocale "%F %R"
   where tz = tzByLabel Europe__Rome -- CET/CEST
 
-findGoodChannels :: Text -> [Channel]
+findGoodChannels :: Text -> [RawChannel]
 findGoodChannels html = map makeChannel rows
   where
     rows = drop 2 $ concatMap (HQ.select "tr:has(a)") $ HQ.parseHtml $ html
-    makeChannel tag = Channel name time
+    makeChannel tag = RawChannel name time
       where name = replaceEscapedQuotes $ maybe "" id $ HQ.attr "href" $ head $ HQ.select "a" tag
             time = parseTime $ unpack $ innerText $ head $ HQ.select "*:nth-child(3)" tag
             -- TODO: Why do these quotes leak into tag content?
@@ -58,34 +62,34 @@ innerText (HQ.Doctype _ text) = text
 innerText (HQ.Text _ text) = text
 innerText (HQ.Tag _ _ _ children) = DT.concat $ map innerText children
 
-makeDiffChannel :: UTCTime -> Channel -> IO DiffChannel
-makeDiffChannel current channel = do
-  e <- try $ W.head_ $ unpack $ "http://nixos.org/channels/" <> name channel
+makeChannel :: UTCTime -> RawChannel -> IO Channel
+makeChannel current channel = do
+  e <- try $ W.head_ $ unpack $ "http://nixos.org/channels/" <> rname channel
   let link = case e of
                -- We get 302 redirect with Location header, no need to go further
                -- Propagate the rest of the errors
                Left (StatusCodeException _ headers _) -> C8.unpack $ snd $ head $ filter ((== "Location") . fst) headers
                Right response -> C8.unpack $ response ^. W.responseHeader "Location"
-  let diff = diffUTCTime current <$> time channel
-  return $ DiffChannel (name channel)
-                       (diffToLabel diff)
-                       (either id humanTimeDiff diff)
-                       (either (const Nothing) Just diff)
-                       (parseCommit link)
-                       link
-                       (jobset $ name channel)
+  let diff = diffUTCTime current <$> rtime channel
+  return $ Channel (rname channel)
+                    (diffToLabel diff)
+                    (either id humanTimeDiff diff)
+                    (either (const Nothing) Just diff)
+                    (parseCommit link)
+                    link
+                    (toJobset $ rname channel)
 
 
 parseCommit :: String -> String
 parseCommit url = last $ splitOn "." url
 
 -- |The list of the current NixOS channels
-channels :: IO [DiffChannel]
+channels :: IO [Channel]
 channels = do
   r <- W.get "http://nixos.org/channels/"
   current <- getCurrentTime
   let html = pack $ show $ r ^. W.responseBody
-  responseOrExc <- parallelE $ fmap (makeDiffChannel current) $ findGoodChannels $ html
+  responseOrExc <- parallelE $ fmap (makeChannel current) $ findGoodChannels $ html
   unless (null $ lefts responseOrExc) $ do
     print $ lefts responseOrExc
   return $ rights responseOrExc
@@ -103,8 +107,8 @@ humanTimeDiff d
         doShow x unit = (pack $ show $ truncate x) <> " " <> unit
 
 
-jobset :: Text -> Maybe Text
-jobset c
+toJobset :: Text -> Maybe Text
+toJobset c
  | c == "nixos-unstable"       = Just "nixos/trunk-combined/tested"
  | c == "nixos-unstable-small" = Just "nixos/unstable-small/tested"
  | c == "nixpkgs-unstable"     = Just "nixpkgs/trunk/unstable"
