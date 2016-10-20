@@ -19,8 +19,8 @@ main = do
   let port = maybe 3000 read $ lookup "PORT" env
   scotty port $ do
     get "/" $ do
-      allChannels <- liftIO $ channels
+      allChannels <- liftIO channels
       html $ renderHtml $(shamletFile "index.hamlet")
     get "/api/channels" $ do
-      allChannels <- liftIO $ channels
-      json $ allChannels
+      allChannels <- liftIO channels
+      json allChannels
