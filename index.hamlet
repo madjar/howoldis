@@ -61,22 +61,22 @@ $doctype 5
               For a channel to be updated two conditions need to be satisfied:
 
             <ul>
-              <li>Particular jobset evaluation needs to be completely build ie. no more queued jobs, even if some jobs may fail
-              <li>Particular jobset evaluation <strong>tested/unstable</strong> job needs to be built succesfully
+              <li>Particular jobset evaluation needs to be completely built ie. no more queued jobs, even if some jobs may fail
+              <li>Particular jobset evaluation's <strong>tested/unstable</strong> job needs to be built succesfully
 
             <p>
-              nixos.org server has a cronjob for which <a href="https://github.com/NixOS/nixos-channel-scripts">nixos-channel-scripts</a>
-              are executed and poll for newest jobset that satisfies the above two conditions and trigger
+              The nixos.org server has a cronjob for which <a href="https://github.com/NixOS/nixos-channel-scripts">nixos-channel-scripts</a>
+              are executed and poll for the newest jobset that satisfies the above two conditions and trigger
               a channel update.
 
             <p>
-              Once triggered, release files like ISOs are copied and for NixOS channel
+              Once triggered, release files such as ISOs are copied. For the NixOS channel
               <a href="https://github.com/NixOS/nixos-channel-scripts/blob/master/generate-programs-index.cc">
                 command-not-found
               index is generated, which can take some time since it has to fetch all packages.
 
             <p>
-              <strong>nixpkgs</strong> is quickly updated since none of the above needs to happen once channel update is triggered.
+              <strong>nixpkgs</strong> is quickly updated since none of the above needs to happen once a channel update is triggered.
 
     <div class=page-header>
       <h3>How up to date are NixOS channels?
