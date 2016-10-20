@@ -1,31 +1,102 @@
 $doctype 5
 <head>
   <title> "How up to date are NixOS channels?"
-  <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js">
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 <body>
   <div class=container>
-    <div class=page-header>
-      <h1>How up to date are NixOS channels?
-    <h2 class=text-center>#{dname mainChannel} is <strong>#{dtime mainChannel}</strong> old
 
-    <h3>What about the other NixOS channels?
+    <h3>How does channel update?
+
+    <div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+      <div class="panel panel-default">
+        <div class="panel-heading" role="tab" id="headingOne">
+          <h4 class="panel-title">
+            <a class="collapsed" role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+              1. Git commit  <span class="glyphicon glyphicon-menu-down" aria-hidden="true"></span>
+        <div id="collapseOne" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingOne">
+          <div class="panel-body">
+            Anyone with commit access can push changes to either <strong>master</strong>
+            or one of the <strong>release-XX.XX</strong> branches.
+      <div class="panel panel-default">
+        <div class="panel-heading" role="tab" id="headingTwo">
+          <h4 class="panel-title">
+            <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseTwo" aria-expanded="false" aria-controls="collapseOne">
+              2. Hydra build  <span class="glyphicon glyphicon-menu-down" aria-hidden="true"></span>
+        <div id="collapseTwo" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingTwo">
+          <div class="panel-body">
+            <p>Hydra has a jobset per channel, which polls changes every few hours and builds Nix expressions.</p>
+
+            <p>There are two major differences in those jobsets:</p>
+
+            <h3>Nixpkgs</h3>
+
+            These jobsets build all packages for supported platforms (Linux, Darwin).
+
+            There is an aggregate <strong>unstable</strong> job that consists of
+            most commonly used and bootstrapping packages.
+
+            <h3>NixOS</h3>
+
+            These jobsets build all packages and NixOS related things only for Linux.
+
+            There is an aggregate <strong>tested</strong> job that consists of
+            mostly NixOS tests firing up qemu instances with different kinds of configurations.
+      <div class="panel panel-default">
+        <div class="panel-heading" role="tab" id="headingThree">
+          <h4 class="panel-title">
+            <a role="button" data-toggle="collapse" data-parent="#accordion" href="#collapseThree" aria-expanded="false" aria-controls="collapseOne">
+              3. Channel update  <span class="glyphicon glyphicon-menu-down" aria-hidden="true"></span>
+        <div id="collapseThree" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingTwo">
+          <div class="panel-body">
+            <p>
+              For channel to be updated, two things need to be satisfied:
+
+            <ul>
+              <li>Particular jobset evaluation needs to be completely build ie. no more queued jobs
+              <li>Particular jobset evaluation <strong>tested/unstable</strong> needs to pass as a whole
+
+            <p>
+              nixos.org has a cronjob for which <a href="https://github.com/NixOS/nixos-channel-scripts">nixos-channel-scripts</a>
+              are executed and poll for newest jobset that satisfies the above two conditions and trigger
+              a channel update.
+
+            <p>
+              Once triggered, release files like ISOs are copied and for NixOS channel
+              <a href="https://github.com/NixOS/nixos-channel-scripts/blob/master/generate-programs-index.cc">
+                command-not-found
+              index is generated, which can take some time since it has to fetch all packages.
+
+            <p>
+              <strong>nixpkgs</strong> is quickly updated since none of the above needs to happen.
+
+    <div class=page-header>
+      <h3>How up to date are NixOS channels?
+
     <table class="table table-striped">
       <thead>
         <tr>
           <th>Channel
-          <th>Updated
-          <th>Tests
+          <th>Last updated
+          <th>Commit
+          <th>Hydra job for tests
       <tbody>
         $forall chan <- allChannels
           <tr>
             <td>
-              <a href="/#{dname chan}"> #{dname chan}
+              <a href="#{link chan}"> #{name chan}
             <td>
-              <span class="label label-#{dlabel chan}">#{dtime chan} ago</span>
+              <span class="label label-#{show $ label chan}">#{humantime chan} ago</span>
+            <td>
+              <a href="https://github.com/NixOS/nixpkgs/commit/#{commit chan}"> #{commit chan}
             <td>
               $maybe j <- jobset chan
-                <a href="http://hydra.nixos.org/job/#{j}#tabs-constituents"> Hydra
+                <a href="http://hydra.nixos.org/job/#{j}#tabs-constituents"> #{j}
               $nothing
                 No tests
+
   <div class=container>
     <p class=text-muted>Made by <a href="https://twitter.com/georgesdubus">Georges Dubus</a>, code is on <a href="https://github.com/madjar/howoldis">github</a>
