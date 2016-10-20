@@ -31,7 +31,7 @@ data RawChannel = RawChannel { rname :: Text
                              } deriving (Show)
 
 data Channel = Channel { name  :: Text
-                       , label :: Color
+                       , label :: Label
                        , humantime  :: Text
                        , time :: Maybe NominalDiffTime
                        , commit :: String
@@ -40,8 +40,13 @@ data Channel = Channel { name  :: Text
                        } deriving (Show, Generic)
 instance ToJSON Channel
 
-type Color = Text
-
+data Label = Danger | Warning | Success | NoLabel deriving (Generic)
+instance Show Label where
+  show Danger = "danger"
+  show Warning = "warning"
+  show Success = "success"
+  show NoLabel = ""
+instance ToJSON Label
 
 parseTime :: String -> Either Text UTCTime
 parseTime = fmap (localTimeToUTCTZ tz) . parseTimeM True defaultTimeLocale "%F %R"
@@ -116,10 +121,10 @@ toJobset c
  | otherwise                   = Nothing
 
 -- | Takes time since last update to the channel and colors it based on it's age
-diffToLabel :: Either Text NominalDiffTime -> Color
-diffToLabel (Left _) = ""
+diffToLabel :: Either Text NominalDiffTime -> Label
+diffToLabel (Left _) = NoLabel
 diffToLabel (Right time)
-  | days < 3 = "success"
-  | days < 10 = "warning"
-  | otherwise = "danger"
+  | days < 3 = Success
+  | days < 10 = Warning
+  | otherwise = Danger
     where days = time / (60 * 60 * 24)
