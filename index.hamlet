@@ -28,23 +28,28 @@ $doctype 5
               2. Hydra build  <span class="glyphicon glyphicon-menu-down" aria-hidden="true"></span>
         <div id="collapseTwo" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingTwo">
           <div class="panel-body">
-            <p>Hydra has a jobset per channel, which polls changes every few hours and builds Nix expressions.</p>
+            <p>
+              Each channel has an associated <i>jobset</i> on <a href="http://nixos.org/hydra/">Hydra (Nix CI)</a> that is a collection of individual <i>jobs</i>. A <i>job</i> roughly corresponds to building a particular package, which itself may depend on other packages built by other <i>jobs</i>.
+            <p>
+              Before a channel can update, its associated <i>jobset</i> must be finished building, though the building of some jobs may fail.
+            <p>
+              As long as certain special <i>jobs</i> -- <i>unstable</i> for nixpkgs, and <i>tested</i> for nixos -- build successfully, the channel can update. The role of these special jobs is to ensure that essential functionality is present on each channel update.
 
-            <p>There are two major differences in those jobsets:</p>
 
-            <h3>Nixpkgs</h3>
+            <p>
+              There are two major differences between those jobsets:
 
-            These jobsets build all packages for supported platforms (Linux, Darwin).
-
-            There is an aggregate <strong>unstable</strong> job that consists of
-            most commonly used and bootstrapping packages.
-
-            <h3>NixOS</h3>
-
-            These jobsets build all packages and NixOS related things only for Linux.
-
-            There is an aggregate <strong>tested</strong> job that consists of
-            mostly NixOS tests firing up qemu instances with different kinds of configurations.
+            <ul>
+              <li>
+                <strong>nixpkgs-unstable</strong>
+                <ul>
+                  <li>builds all packages for supported platforms (Linux, Darwin)
+                  <li><a href="https://github.com/NixOS/nixpkgs/blob/master/pkgs/top-level/release.nix#L34-L70">unstable</a> job that consists of most commonly used packages
+              <li>
+                <strong>nixos-*</strong>
+                <ul>
+                  <li>builds all packages and NixOS machinery only for Linux
+                  <li><a href="https://github.com/NixOS/nixpkgs/blob/master/nixos/release-combined.nix#L34-L105">tested</a> job that consists of mostly NixOS tests firing up qemu instances with different kinds of configurations
       <div class="panel panel-default">
         <div class="panel-heading" role="tab" id="headingThree">
           <h4 class="panel-title">
@@ -53,14 +58,14 @@ $doctype 5
         <div id="collapseThree" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingTwo">
           <div class="panel-body">
             <p>
-              For channel to be updated, two things need to be satisfied:
+              For a channel to be updated two conditions need to be satisfied:
 
             <ul>
-              <li>Particular jobset evaluation needs to be completely build ie. no more queued jobs
-              <li>Particular jobset evaluation <strong>tested/unstable</strong> needs to pass as a whole
+              <li>Particular jobset evaluation needs to be completely build ie. no more queued jobs, even if some jobs may fail
+              <li>Particular jobset evaluation <strong>tested/unstable</strong> job needs to be built succesfully
 
             <p>
-              nixos.org has a cronjob for which <a href="https://github.com/NixOS/nixos-channel-scripts">nixos-channel-scripts</a>
+              nixos.org server has a cronjob for which <a href="https://github.com/NixOS/nixos-channel-scripts">nixos-channel-scripts</a>
               are executed and poll for newest jobset that satisfies the above two conditions and trigger
               a channel update.
 
@@ -71,7 +76,7 @@ $doctype 5
               index is generated, which can take some time since it has to fetch all packages.
 
             <p>
-              <strong>nixpkgs</strong> is quickly updated since none of the above needs to happen.
+              <strong>nixpkgs</strong> is quickly updated since none of the above needs to happen once channel update is triggered.
 
     <div class=page-header>
       <h3>How up to date are NixOS channels?
