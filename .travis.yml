@@ -1,0 +1,10 @@
+language: nix
+sudo: false
+env:
+    - NIX_PATH=nixpkgs=https://d3g5gsiof5omrk.cloudfront.net/nixpkgs/nixpkgs-17.03pre93054.fad5794/nixexprs.tar.xz
+script:
+- nix-shell -p haskellPackages.hlint --run "hlint ."
+- nix-shell -p stack --run "stack build --nix"
+cache:
+    directories:
+        - $HOME/.stack
