@@ -12,7 +12,7 @@ import Data.Aeson (ToJSON)
 import Data.Either (rights, lefts)
 import Data.Maybe (fromMaybe)
 import Data.Monoid ((<>))
-import Data.List (null)
+import Data.List (null, sortBy)
 import Data.List.Split (splitOn)
 import Data.Time.Clock (UTCTime, NominalDiffTime, getCurrentTime, diffUTCTime)
 import Data.Time.Format (parseTimeM, defaultTimeLocale)
@@ -39,6 +39,12 @@ data Channel = Channel { name  :: Text
                        , jobset :: Maybe Text
                        } deriving (Show, Generic)
 instance ToJSON Channel
+
+instance Eq Channel where
+  s == c = name s == name c
+
+instance Ord Channel where
+  s `compare` c = name s `compare` name c
 
 data Label = Danger | Warning | Success | NoLabel deriving (Generic)
 instance Show Label where
@@ -97,7 +103,7 @@ channels = do
   let html = pack $ show $ r ^. W.responseBody
   responseOrExc <- parallelE $ makeChannel current <$> findGoodChannels html
   unless (null $ lefts responseOrExc) $ print $ lefts responseOrExc
-  return $ rights responseOrExc
+  return $ sortBy (flip compare) $ rights responseOrExc
 
 
 humanTimeDiff :: NominalDiffTime -> Text
