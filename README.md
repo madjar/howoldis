@@ -1,4 +1,5 @@
 # How old is that NixOS Channel?
+[![Build Status](https://travis-ci.org/madjar/howoldis.svg?branch=master)](https://travis-ci.org/madjar/howoldis)
 
 A small web application that gives the sort answer to that question, and some links to the long answers.
 
