@@ -108,15 +108,19 @@ channels = do
 
 humanTimeDiff :: NominalDiffTime -> Text
 humanTimeDiff d
-  | days > 1 = doShow days "days"
-  | hours > 1 = doShow hours "hours"
-  | minutes > 1 = doShow minutes "minutes"
-  | otherwise = doShow d "seconds"
+  | days > 1 = doShow days (pluralize days "day" "days")
+  | hours > 1 = doShow hours (pluralize hours "hour" "hours")
+  | minutes > 1 = doShow minutes (pluralize minutes "minute" "minutes")
+  | otherwise = doShow d (pluralize d "second" "seconds")
   where minutes = d / 60
         hours = minutes / 60
         days = hours / 24
         doShow x unit = pack (show $ truncate x) <> " " <> unit
 
+pluralize :: NominalDiffTime -> Text -> Text -> Text
+pluralize d s p
+  | d < 2 = s -- diffUTCTime contains a float value, so everything below `2` will be treated as 1
+  | otherwise = p
 
 toJobset :: Text -> Maybe Text
 toJobset c
