@@ -117,10 +117,12 @@ humanTimeDiff d
         days = hours / 24
         doShow x unit = pack (show $ truncate x) <> " " <> unit
 
-pluralize :: NominalDiffTime -> Text -> Text -> Text
-pluralize d s p
-  | d < 2 = s -- diffUTCTime contains a float value, so everything below `2` will be treated as 1
-  | otherwise = p
+        -- diffUTCTime contains a float-like value, so everything below `2` will be treated as 1
+        -- Furthermore a 0 causes the next lower unit, so only 2 and more will be interpreted
+        -- as plural.
+        pluralize d s p
+          | d < 2 = s
+          | otherwise = p
 
 toJobset :: Text -> Maybe Text
 toJobset c
