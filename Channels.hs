@@ -98,7 +98,7 @@ parseCommit url = last $ splitOn "." url
 -- |The list of the current NixOS channels
 channels :: IO [Channel]
 channels = do
-  r <- W.get "http://nixos.org/channels/"
+  r <- W.get "https://nixos.org/channels/"
   current <- getCurrentTime
   let html = pack $ show $ r ^. W.responseBody
   responseOrExc <- parallelE $ makeChannel current <$> findGoodChannels html
