@@ -76,7 +76,7 @@ innerText (HQ.Tag _ _ _ children) = DT.concat $ map innerText children
 
 makeChannel :: UTCTime -> RawChannel -> IO Channel
 makeChannel current channel = do
-  e <- try $ W.head_ $ unpack $ "http://nixos.org/channels/" <> rname channel
+  e <- try $ W.head_ $ unpack $ "https://nixos.org/channels/" <> rname channel
   let link = case e of
                -- We get 302 redirect with Location header, no need to go further
                -- Propagate the rest of the errors
