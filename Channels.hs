@@ -23,6 +23,8 @@ import qualified Data.Text as DT
 import qualified Data.ByteString.Char8 as C8
 import Data.Text (pack, unpack, replace, Text)
 import qualified Network.Wreq as W
+import Network.Wreq.Session (Session)
+import qualified Network.Wreq.Session as WS
 import Network.HTTP.Client (HttpException(StatusCodeException))
 
 
@@ -74,9 +76,13 @@ innerText (HQ.Doctype _ text) = text
 innerText (HQ.Text _ text) = text
 innerText (HQ.Tag _ _ _ children) = DT.concat $ map innerText children
 
-makeChannel :: UTCTime -> RawChannel -> IO Channel
-makeChannel current channel = do
-  e <- try $ W.head_ $ unpack $ "https://nixos.org/channels/" <> rname channel
+makeChannel :: Session -> UTCTime -> RawChannel -> IO Channel
+makeChannel sess current channel = do
+  -- headWith shouldn't be necessary once we switch to newer wreq release
+  -- containing a fix for head_
+  -- https://github.com/bos/wreq/commit/15654ea26175a33b2b310ed120e3f58855b72b25
+  e <- try $ WS.headWith (W.defaults & W.redirects .~ 0) sess $
+    unpack $ "https://nixos.org/channels/" <> rname channel
   let link = case e of
                -- We get 302 redirect with Location header, no need to go further
                -- Propagate the rest of the errors
@@ -97,13 +103,15 @@ parseCommit url = last $ splitOn "." url
 
 -- |The list of the current NixOS channels
 channels :: IO [Channel]
-channels = do
-  r <- W.get "https://nixos.org/channels/"
-  current <- getCurrentTime
-  let html = pack $ show $ r ^. W.responseBody
-  responseOrExc <- parallelE $ makeChannel current <$> findGoodChannels html
-  unless (null $ lefts responseOrExc) $ print $ lefts responseOrExc
-  return $ sortBy (flip compare) $ rights responseOrExc
+channels =
+  WS.withAPISession $ \sess -> do
+    r <- WS.get sess "https://nixos.org/channels/"
+    current <- getCurrentTime
+    let html = pack $ show $ r ^. W.responseBody
+    responseOrExc <- parallelE $
+      makeChannel sess current <$> findGoodChannels html
+    unless (null $ lefts responseOrExc) $ print $ lefts responseOrExc
+    return $ sortBy (flip compare) $ rights responseOrExc
 
 
 humanTimeDiff :: NominalDiffTime -> Text
