@@ -25,7 +25,9 @@ import Data.Text (pack, unpack, replace, Text)
 import qualified Network.Wreq as W
 import Network.Wreq.Session (Session)
 import qualified Network.Wreq.Session as WS
-import Network.HTTP.Client (HttpException(StatusCodeException))
+import Network.HTTP.Client (HttpException(HttpExceptionRequest)
+                           , HttpExceptionContent(StatusCodeException)
+                           , responseHeaders)
 
 
 data RawChannel = RawChannel { rname :: Text
@@ -78,15 +80,12 @@ innerText (HQ.Tag _ _ _ children) = DT.concat $ map innerText children
 
 makeChannel :: Session -> UTCTime -> RawChannel -> IO Channel
 makeChannel sess current channel = do
-  -- headWith shouldn't be necessary once we switch to newer wreq release
-  -- containing a fix for head_
-  -- https://github.com/bos/wreq/commit/15654ea26175a33b2b310ed120e3f58855b72b25
-  e <- try $ WS.headWith (W.defaults & W.redirects .~ 0) sess $
-    unpack $ "https://nixos.org/channels/" <> rname channel
+  e <- try $ WS.head_ sess . unpack $ "https://nixos.org/channels/" <> rname channel
   let link = case e of
                -- We get 302 redirect with Location header, no need to go further
                -- Propagate the rest of the errors
-               Left (StatusCodeException _ headers _) -> C8.unpack $ snd $ head $ filter ((== "Location") . fst) headers
+               Left (HttpExceptionRequest _ (StatusCodeException resp _)) ->
+                 C8.unpack $ snd $ head $ filter ((== "Location") . fst) . responseHeaders $ resp
                Right response -> C8.unpack $ response ^. W.responseHeader "Location"
   let diff = diffUTCTime current <$> rtime channel
   return $ Channel (rname channel)
