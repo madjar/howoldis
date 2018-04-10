@@ -44,11 +44,18 @@ data Channel = Channel { name  :: Text
                        } deriving (Show, Generic)
 instance ToJSON Channel
 
+parseVersion :: Channel -> Text
+parseVersion c = matchVersion $ DT.splitOn "-" name'
+  where name' = name c
+
+matchVersion :: [Text] -> Text
+matchVersion (_:x:_) = x
+
 instance Eq Channel where
-  s == c = name s == name c
+  s == c = parseVersion s == parseVersion c
 
 instance Ord Channel where
-  s `compare` c = name s `compare` name c
+  s `compare` c = parseVersion s `compare` parseVersion c
 
 data Label = Danger | Warning | Success | NoLabel deriving (Generic)
 instance Show Label where
