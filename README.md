@@ -10,4 +10,5 @@ It is running at http://howoldis.herokuapp.com
 # Development
 
 
-    nix-shell -p stack --run "stack build --nix --file-watch --exec howoldis"
+    nix-shell -p stack --run "stack build --nix --file-watch --exec howoldis --
+    --server"
