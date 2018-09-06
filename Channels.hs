@@ -143,9 +143,8 @@ toJobset c
  | c == "nixos-unstable"       = Just "nixos/trunk-combined/tested"
  | c == "nixos-unstable-small" = Just "nixos/unstable-small/tested"
  | c == "nixpkgs-unstable"     = Just "nixpkgs/trunk/unstable"
- | c == "nixpkgs-17.09-darwin" = Just "nixpkgs/nixpkgs-17.09-darwin/darwin-tested"
- | c == "nixpkgs-18.03-darwin" = Just "nixpkgs/nixpkgs-18.03-darwin/darwin-tested"
  | "nixos-" `DT.isPrefixOf` c  = Just $ "nixos/release-" <> DT.drop 6 c <> "/tested"
+ | "-darwin" `DT.isSuffixOf` c = Just $ "nixpkgs/" <> c <> "/darwin-tested"
  | otherwise                   = Nothing
 
 -- | Takes time since last update to the channel and colors it based on it's age
