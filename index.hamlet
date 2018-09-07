@@ -94,7 +94,7 @@ $doctype 5
             <td>
               <a href="#{link chan}"> #{name chan}
             <td>
-              <span class="label label-#{show $ label chan}">#{humantime chan} ago</span>
+              <span class="label label-#{show $ label chan}">#{humantime chan} ago
             <td>
               <a href="https://github.com/NixOS/nixpkgs/commit/#{commit chan}"> #{commit chan}
             <td>
