@@ -4,6 +4,7 @@ packages:
 extra-deps:
 - haquery-0.1.1.3
 - tz-0.1.3.0
+- threads-supervisor-1.1.0.0
 nix:
   packages: [git,zlib]
 resolver: lts-9.21

@@ -17,21 +17,27 @@ cabal-version:       >=1.10
 
 executable howoldis
   main-is:             Main.hs
-  build-depends:     base >=4.8 && <5.0
-                     , wreq
-                     , lens
-                     , http-client
-                     , bytestring
-                     , split
-                     , aeson
-                     , parallel-io
-                     , blaze-html >= 0.7.0
-                     , mtl >= 2.1.3
-                     , haquery > 0.1.1.2
-                     , scotty >= 0.9
-                     , shakespeare >= 2.0.0
-                     , text >= 1.2.0
-                     , time >= 1.5
-                     , tz
-  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  other-modules:       Channels
+  build-depends:     aeson
+                   , base >=4.8 && <5.0
+                   , blaze-html >= 0.7.0
+                   , blaze-markup
+                   , bytestring
+                   , exceptions
+                   , github
+                   , haquery > 0.1.1.2
+                   , http-client
+                   , http-client-tls
+                   , monad-logger
+                   , mtl >= 2.1.3
+                   , retry
+                   , scotty >= 0.9
+                   , shakespeare >= 2.0.0
+                   , stm
+                   , text >= 1.2.0
+                   , threads-supervisor
+                   , time >= 1.5
+                   , unliftio
+                   , unliftio-core
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall
   default-language:    Haskell2010
