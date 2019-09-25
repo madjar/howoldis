@@ -109,8 +109,8 @@ parseCommit url = last $ splitOn "." url
 
 -- |The list of the current NixOS channels
 channels :: IO [Channel]
-channels =
-  WS.withAPISession $ \sess -> do
+channels = do
+    sess <- WS.newAPISession
     r <- WS.get sess "https://nixos.org/channels/"
     current <- getCurrentTime
     let html = pack $ show $ r ^. W.responseBody

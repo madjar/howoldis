@@ -17,6 +17,7 @@ cabal-version:       >=1.10
 
 executable howoldis
   main-is:             Main.hs
+  other-modules:       Channels
   build-depends:     base >=4.8 && <5.0
                      , wreq
                      , lens
