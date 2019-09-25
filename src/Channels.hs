@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 module Channels (Channel (..), channels) where
@@ -10,11 +11,12 @@ import GHC.Generics
 import qualified Haquery as HQ
 import Data.Aeson (ToJSON)
 import Data.Either (rights, lefts)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromJust, fromMaybe)
 import Data.Monoid ((<>))
 import Data.List (null, sortBy)
 import Data.List.Split (splitOn)
-import Data.Time.Clock (UTCTime, NominalDiffTime, getCurrentTime, diffUTCTime)
+import Data.Time.Clock (UTCTime(..), NominalDiffTime, getCurrentTime, diffUTCTime)
+import Data.Time.Calendar (fromGregorian)
 import Data.Time.Format (parseTimeM, defaultTimeLocale)
 import Data.Time.LocalTime (localTimeToUTC, hoursToTimeZone)
 import Data.Time.Zones
@@ -31,13 +33,13 @@ import Network.HTTP.Client (HttpException(HttpExceptionRequest)
 
 
 data RawChannel = RawChannel { rname :: Text
-                             , rtime :: Either Text UTCTime
+                             , rtime :: UTCTime
                              } deriving (Show)
 
 data Channel = Channel { name  :: Text
                        , label :: Label
                        , humantime  :: Text
-                       , time :: Maybe NominalDiffTime
+                       , time :: NominalDiffTime
                        , commit :: String
                        , link :: String
                        , jobset :: Maybe Text
@@ -65,9 +67,10 @@ instance Show Label where
   show NoLabel = ""
 instance ToJSON Label
 
-parseTime :: String -> Either Text UTCTime
-parseTime = fmap (localTimeToUTCTZ tz) . parseTimeM True defaultTimeLocale "%F %R"
+parseTime :: String -> UTCTime
+parseTime = fromMaybe nixEpoch . fmap (localTimeToUTCTZ tz) . parseTimeM @Maybe True defaultTimeLocale "%F %R"
   where tz = tzByLabel Europe__Rome -- CET/CEST
+        nixEpoch = UTCTime (fromGregorian 2006 1 1) 0
 
 findGoodChannels :: Text -> [RawChannel]
 findGoodChannels html = map makeChannel rows
@@ -94,11 +97,11 @@ makeChannel sess current channel = do
                Left (HttpExceptionRequest _ (StatusCodeException resp _)) ->
                  C8.unpack $ snd $ head $ filter ((== "Location") . fst) . responseHeaders $ resp
                Right response -> C8.unpack $ response ^. W.responseHeader "Location"
-  let diff = diffUTCTime current <$> rtime channel
+  let diff = diffUTCTime current (rtime channel)
   return $ Channel (rname channel)
                     (diffToLabel diff)
-                    (either id humanTimeDiff diff)
-                    (either (const Nothing) Just diff)
+                    (humanTimeDiff diff)
+                    (diff)
                     (parseCommit link)
                     link
                     (toJobset $ rname channel)
@@ -148,9 +151,8 @@ toJobset c
  | otherwise                   = Nothing
 
 -- | Takes time since last update to the channel and colors it based on it's age
-diffToLabel :: Either Text NominalDiffTime -> Label
-diffToLabel (Left _) = NoLabel
-diffToLabel (Right time)
+diffToLabel :: NominalDiffTime -> Label
+diffToLabel time
   | days < 3 = Success
   | days < 10 = Warning
   | otherwise = Danger
