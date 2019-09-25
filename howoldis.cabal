@@ -16,6 +16,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 executable howoldis
+  hs-source-dirs:         src
   main-is:             Main.hs
   other-modules:       Channels
   build-depends:     base >=4.8 && <5.0

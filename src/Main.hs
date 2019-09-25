@@ -20,7 +20,7 @@ main = do
   scotty port $ do
     get "/" $ do
       allChannels <- liftIO channels
-      html $ renderHtml $(shamletFile "index.hamlet")
+      html $ renderHtml $(shamletFile "src/index.hamlet")
     get "/api/channels" $ do
       allChannels <- liftIO channels
       json allChannels
