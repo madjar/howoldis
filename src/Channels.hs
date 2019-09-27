@@ -47,7 +47,7 @@ parseVersion :: Channel -> Text
 parseVersion = DT.takeWhile (/= '-') . DT.drop 1 . DT.dropWhile (/= '-') . name
 
 parseTime :: String -> UTCTime
-parseTime = fromMaybe nixEpoch . fmap (localTimeToUTCTZ tz) . parseTimeM @Maybe True defaultTimeLocale "%F %R"
+parseTime = maybe nixEpoch (localTimeToUTCTZ tz) . parseTimeM @Maybe True defaultTimeLocale "%F %R"
   where tz = tzByLabel Europe__Rome -- CET/CEST
         nixEpoch = UTCTime (fromGregorian 2006 1 1) 0
 
@@ -79,7 +79,7 @@ makeChannel sess current channel = do
                Left e -> throwIO e
   let diff = diffUTCTime current (rtime channel)
   return $ Channel (rname channel)
-                    (diff)
+                    diff
                     link
 
 -- |The list of the current NixOS channels
