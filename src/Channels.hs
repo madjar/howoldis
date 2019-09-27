@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
-module Channels (Channel (..), channels, parseVersion) where
+module Channels (Channel (..), label, humantime, jobset, commit, channels, parseVersion) where
 
 import Control.Concurrent.ParallelIO.Global (parallelE)
 import Control.Exception (throwIO, try)
@@ -38,25 +38,13 @@ data RawChannel = RawChannel { rname :: Text
                              } deriving (Show)
 
 data Channel = Channel { name  :: Text
-                       , label :: Label
-                       , humantime  :: Text
                        , time :: NominalDiffTime
-                       , commit :: String
                        , link :: String
-                       , jobset :: Maybe Text
                        } deriving (Show, Generic)
 instance ToJSON Channel
 
 parseVersion :: Channel -> Text
 parseVersion = DT.takeWhile (/= '-') . DT.drop 1 . DT.dropWhile (/= '-') . name
-
-data Label = Danger | Warning | Success | NoLabel deriving (Generic)
-instance Show Label where
-  show Danger = "danger"
-  show Warning = "warning"
-  show Success = "success"
-  show NoLabel = ""
-instance ToJSON Label
 
 parseTime :: String -> UTCTime
 parseTime = fromMaybe nixEpoch . fmap (localTimeToUTCTZ tz) . parseTimeM @Maybe True defaultTimeLocale "%F %R"
@@ -91,16 +79,8 @@ makeChannel sess current channel = do
                Left e -> throwIO e
   let diff = diffUTCTime current (rtime channel)
   return $ Channel (rname channel)
-                    (diffToLabel diff)
-                    (humanTimeDiff diff)
                     (diff)
-                    (parseCommit link)
                     link
-                    (toJobset $ rname channel)
-
-
-parseCommit :: String -> String
-parseCommit url = last $ splitOn "." url
 
 -- |The list of the current NixOS channels
 channels :: IO [Channel]
@@ -113,6 +93,36 @@ channels = do
       makeChannel sess current <$> findGoodChannels html
     unless (null $ lefts responseOrExc) $ print $ lefts responseOrExc
     return $ sortOn (Down . parseVersion) $ rights responseOrExc
+
+
+
+-- Display helpers
+
+
+data Label = Danger | Warning | Success | NoLabel deriving (Generic)
+instance Show Label where
+  show Danger = "danger"
+  show Warning = "warning"
+  show Success = "success"
+  show NoLabel = ""
+instance ToJSON Label
+
+
+label :: Channel -> Label
+label = diffToLabel . time
+
+
+-- | Takes time since last update to the channel and colors it based on it's age
+diffToLabel :: NominalDiffTime -> Label
+diffToLabel time
+  | days < 3 = Success
+  | days < 10 = Warning
+  | otherwise = Danger
+    where days = time / (60 * 60 * 24)
+
+
+humantime :: Channel -> Text
+humantime = humanTimeDiff . time
 
 
 humanTimeDiff :: NominalDiffTime -> Text
@@ -133,6 +143,9 @@ humanTimeDiff d
           | n < 2 = s
           | otherwise = p
 
+jobset :: Channel -> Maybe Text
+jobset = toJobset . name
+
 toJobset :: Text -> Maybe Text
 toJobset c
  | c == "nixos-unstable"       = Just "nixos/trunk-combined/tested"
@@ -142,10 +155,9 @@ toJobset c
  | "-darwin" `DT.isSuffixOf` c = Just $ "nixpkgs/" <> c <> "/darwin-tested"
  | otherwise                   = Nothing
 
--- | Takes time since last update to the channel and colors it based on it's age
-diffToLabel :: NominalDiffTime -> Label
-diffToLabel time
-  | days < 3 = Success
-  | days < 10 = Warning
-  | otherwise = Danger
-    where days = time / (60 * 60 * 24)
+
+commit :: Channel -> String
+commit = parseCommit . link
+
+parseCommit :: String -> String
+parseCommit url = last $ splitOn "." url
