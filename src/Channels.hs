@@ -1,25 +1,25 @@
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
-module Channels (Channel (..), channels) where
+module Channels (Channel (..), channels, parseVersion) where
 
-import Control.Concurrent.ParallelIO.Global (parallelE, stopGlobalPool)
-import Control.Exception (try)
-import Control.Lens
+import Control.Concurrent.ParallelIO.Global (parallelE)
+import Control.Exception (throwIO, try)
+import Control.Lens ((^.))
 import Control.Monad (unless)
 import GHC.Generics
 import qualified Haquery as HQ
 import Data.Aeson (ToJSON)
 import Data.Either (rights, lefts)
-import Data.Maybe (fromJust, fromMaybe)
+import Data.Maybe (fromMaybe)
 import Data.Monoid ((<>))
-import Data.List (sortOn, null, sortBy)
+import Data.List (sortOn, null)
 import Data.List.Split (splitOn)
 import Data.Ord (Down (..))
 import Data.Time.Clock (UTCTime(..), NominalDiffTime, getCurrentTime, diffUTCTime)
 import Data.Time.Calendar (fromGregorian)
 import Data.Time.Format (parseTimeM, defaultTimeLocale)
-import Data.Time.LocalTime (localTimeToUTC, hoursToTimeZone)
 import Data.Time.Zones
 import Data.Time.Zones.All
 import qualified Data.Text as DT
@@ -48,12 +48,7 @@ data Channel = Channel { name  :: Text
 instance ToJSON Channel
 
 parseVersion :: Channel -> Text
-parseVersion c = matchVersion $ DT.splitOn "-" name'
-  where name' = name c
-
-matchVersion :: [Text] -> Text
-matchVersion (_:x:_) = x
-
+parseVersion = DT.takeWhile (/= '-') . DT.drop 1 . DT.dropWhile (/= '-') . name
 
 data Label = Danger | Warning | Success | NoLabel deriving (Generic)
 instance Show Label where
@@ -69,12 +64,12 @@ parseTime = fromMaybe nixEpoch . fmap (localTimeToUTCTZ tz) . parseTimeM @Maybe 
         nixEpoch = UTCTime (fromGregorian 2006 1 1) 0
 
 findGoodChannels :: Text -> [RawChannel]
-findGoodChannels html = map makeChannel rows
+findGoodChannels html = map rowToChannel rows
   where
     rows = drop 2 $ concatMap (HQ.select "tr:has(a)") $ HQ.parseHtml html
-    makeChannel tag = RawChannel name time
-      where name = replaceEscapedQuotes $ fromMaybe "" $ HQ.attr "href" $ head $ HQ.select "a" tag
-            time = parseTime $ unpack $ innerText $ head $ HQ.select "*:nth-child(3)" tag
+    rowToChannel tag = RawChannel {..}
+      where rname = replaceEscapedQuotes $ fromMaybe "" $ HQ.attr "href" $ head $ HQ.select "a" tag
+            rtime = parseTime $ unpack $ innerText $ head $ HQ.select "*:nth-child(3)" tag
             -- TODO: Why do these quotes leak into tag content?
             replaceEscapedQuotes = replace "\\\"" ""
 
@@ -86,13 +81,14 @@ innerText (HQ.Tag _ _ _ children) = DT.concat $ map innerText children
 
 makeChannel :: Session -> UTCTime -> RawChannel -> IO Channel
 makeChannel sess current channel = do
-  e <- try $ WS.head_ sess . unpack $ "https://nixos.org/channels/" <> rname channel
-  let link = case e of
+  res <- try $ WS.head_ sess . unpack $ "https://nixos.org/channels/" <> rname channel
+  link <- case res of
                -- We get 302 redirect with Location header, no need to go further
                -- Propagate the rest of the errors
                Left (HttpExceptionRequest _ (StatusCodeException resp _)) ->
-                 C8.unpack $ snd $ head $ filter ((== "Location") . fst) . responseHeaders $ resp
-               Right response -> C8.unpack $ response ^. W.responseHeader "Location"
+                 return $ C8.unpack $ snd $ head $ filter ((== "Location") . fst) . responseHeaders $ resp
+               Right response -> return $ C8.unpack $ response ^. W.responseHeader "Location"
+               Left e -> throwIO e
   let diff = diffUTCTime current (rtime channel)
   return $ Channel (rname channel)
                     (diffToLabel diff)
@@ -128,13 +124,13 @@ humanTimeDiff d
   where minutes = d / 60
         hours = minutes / 60
         days = hours / 24
-        doShow x unit = pack (show $ truncate x) <> " " <> unit
+        doShow x unit = pack (show @Int $ truncate x) <> " " <> unit
 
         -- diffUTCTime contains a float-like value, so everything below `2` will be treated as 1
         -- Furthermore a 0 causes the next lower unit, so only 2 and more will be interpreted
         -- as plural.
-        pluralize d s p
-          | d < 2 = s
+        pluralize n s p
+          | n < 2 = s
           | otherwise = p
 
 toJobset :: Text -> Maybe Text
