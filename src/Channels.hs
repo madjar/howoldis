@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
-module Channels (Channel (..), label, humantime, jobset, commit, channels, parseVersion) where
+module Channels (Channel (..), label, humantime, jobset, commit, channels) where
 
 import Control.Concurrent.ParallelIO.Global (parallelE)
 import Control.Exception (throwIO, try)
@@ -42,9 +42,6 @@ data Channel = Channel { name  :: Text
                        , link :: String
                        } deriving (Show, Generic)
 instance ToJSON Channel
-
-parseVersion :: Channel -> Text
-parseVersion = DT.takeWhile (/= '-') . DT.drop 1 . DT.dropWhile (/= '-') . name
 
 parseTime :: String -> UTCTime
 parseTime = maybe nixEpoch (localTimeToUTCTZ tz) . parseTimeM @Maybe True defaultTimeLocale "%F %R"
@@ -93,6 +90,8 @@ channels = do
       makeChannel sess current <$> findGoodChannels html
     unless (null $ lefts responseOrExc) $ print $ lefts responseOrExc
     return $ sortOn (Down . parseVersion) $ rights responseOrExc
+  where parseVersion = DT.takeWhile (/= '-') . DT.drop 1 . DT.dropWhile (/= '-') . name
+
 
 
 
