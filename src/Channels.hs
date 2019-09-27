@@ -13,8 +13,9 @@ import Data.Aeson (ToJSON)
 import Data.Either (rights, lefts)
 import Data.Maybe (fromJust, fromMaybe)
 import Data.Monoid ((<>))
-import Data.List (null, sortBy)
+import Data.List (sortOn, null, sortBy)
 import Data.List.Split (splitOn)
+import Data.Ord (Down (..))
 import Data.Time.Clock (UTCTime(..), NominalDiffTime, getCurrentTime, diffUTCTime)
 import Data.Time.Calendar (fromGregorian)
 import Data.Time.Format (parseTimeM, defaultTimeLocale)
@@ -53,11 +54,6 @@ parseVersion c = matchVersion $ DT.splitOn "-" name'
 matchVersion :: [Text] -> Text
 matchVersion (_:x:_) = x
 
-instance Eq Channel where
-  s == c = parseVersion s == parseVersion c
-
-instance Ord Channel where
-  s `compare` c = parseVersion s `compare` parseVersion c
 
 data Label = Danger | Warning | Success | NoLabel deriving (Generic)
 instance Show Label where
@@ -120,7 +116,7 @@ channels = do
     responseOrExc <- parallelE $
       makeChannel sess current <$> findGoodChannels html
     unless (null $ lefts responseOrExc) $ print $ lefts responseOrExc
-    return $ sortBy (flip compare) $ rights responseOrExc
+    return $ sortOn (Down . parseVersion) $ rights responseOrExc
 
 
 humanTimeDiff :: NominalDiffTime -> Text
