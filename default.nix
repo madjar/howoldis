@@ -1,16 +1,13 @@
-{ mkDerivation, base, blaze-html, HTTP, mtl, old-locale, scotty
-, shakespeare, stdenv, tagsoup, text, time
-}:
-mkDerivation {
-  pname = "howoldis";
-  version = "0.1.0.0";
-  src = ./.;
-  isLibrary = false;
-  isExecutable = true;
-  buildDepends = [
-    base blaze-html HTTP mtl old-locale scotty shakespeare tagsoup text
-    time
-  ];
-  description = "Little web app displaying the age of the last NixOS channels";
-  license = stdenv.lib.licenses.bsd3;
-}
+{ pkgs ? import ./nixpkgs.nix }:
+let
+  src = pkgs.nix-gitignore.gitignoreSource [ ] ./.;
+  haskellnix = import (builtins.fetchTarball
+    "https://github.com/input-output-hk/haskell.nix/archive/master.tar.gz") {
+      inherit pkgs;
+    };
+  pkgSet = haskellnix.mkStackPkgSet {
+    stack-pkgs = (haskellnix.importAndFilterProject
+      (haskellnix.callStackToNix { inherit src; })).pkgs;
+  };
+  packages = pkgSet.config.hsPkgs;
+in { howoldis = packages.howoldis.components.exes.howoldis; }
