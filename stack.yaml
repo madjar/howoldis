@@ -6,3 +6,4 @@ extra-deps:
 nix:
   packages: [git,zlib]
 resolver: lts-14.7
+allow-newer: true # for haquery
