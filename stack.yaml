@@ -5,5 +5,5 @@ extra-deps:
 - haquery-0.1.1.3
 nix:
   packages: [git,zlib]
-resolver: lts-14.7
+resolver: lts-14.13
 allow-newer: true # for haquery
