@@ -32,6 +32,19 @@ import Network.HTTP.Client (HttpException(HttpExceptionRequest)
                            , HttpExceptionContent(StatusCodeException)
                            , responseHeaders)
 
+{- NOTE
+
+The difference between RawChannel and Channel is not very interesting. I should re-design this.
+The interesting information to push are:
+- last commit
+- last eval
+- last successful build (if eval is not finished, what is queued? If not successful, what failed?)
+- last successful build with finished eval
+- last release of the channel
+
+Maybe on a separate page that displays and explain the whole funnel?
+
+-}
 
 data RawChannel = RawChannel { rname :: Text
                              , rtime :: UTCTime
@@ -64,6 +77,7 @@ innerText (HQ.Doctype _ text) = text
 innerText (HQ.Text _ text) = text
 innerText (HQ.Tag _ _ _ children) = DT.concat $ map innerText children
 
+-- | Enrich a RawChannel into a Channel by finding what it links to
 makeChannel :: Session -> UTCTime -> RawChannel -> IO Channel
 makeChannel sess current channel = do
   res <- try $ WS.head_ sess . unpack $ "https://nixos.org/channels/" <> rname channel
