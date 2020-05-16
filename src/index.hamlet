@@ -81,27 +81,8 @@ $doctype 5
     <div class=page-header>
       <h3>How up to date are NixOS channels?
 
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th>Channel
-          <th>Last updated
-          <th>Commit
-          <th>Hydra job for tests
-      <tbody>
-        $forall chan <- allChannels
-          <tr>
-            <td>
-              <a href="#{link chan}"> #{name chan}
-            <td>
-              <span class="label label-#{show $ label chan}">#{humantime chan} ago
-            <td>
-              <a href="https://github.com/NixOS/nixpkgs/commit/#{commit chan}"> #{commit chan}
-            <td>
-              $maybe j <- jobset chan
-                <a href="http://hydra.nixos.org/job/#{j}#tabs-constituents"> #{j}
-              $nothing
-                No tests
+    <p>
+      See <a href="https://status.nixos.org/">NixOS status page</a>.
 
   <div class=container>
-     <p class=text-muted><a href="api/channels">API</a> | Made by <a href="https://twitter.com/georgesdubus">Georges Dubus</a>, code is on <a href="https://github.com/madjar/howoldis">github</a>
+     Made by <a href="https://twitter.com/georgesdubus">Georges Dubus</a>, code is on <a href="https://github.com/madjar/howoldis">github</a>
